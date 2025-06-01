@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Bağlantısı
+// ✅ MongoDB bağlantısı
 mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?retryWrites=true&w=majority&appName=TTO", {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -20,10 +20,20 @@ mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?
     .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
     .catch(err => console.error("❌ MongoDB bağlantı hatası:", err));
 
-// Rating route bağlama
+// ✅ Rating route'u bağla
 app.use("/rate", ratingRoutes);
 
-// Kayıt Route
+// ✅ Tüm kullanıcıları getir (skill sayfalarında kullanılacak)
+app.get("/users", async (req, res) => {
+    try {
+        const users = await User.find();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Kullanıcılar alınamadı" });
+    }
+});
+
+// ✅ Kayıt Route
 app.post("/register", async (req, res) => {
     const { name, email, password, skillsHave, skillsWant } = req.body;
 
@@ -44,7 +54,7 @@ app.post("/register", async (req, res) => {
         password: hashed,
         skillsHave,
         skillsWant,
-        points: {}  // Yeni kullanıcı için boş puan listesi
+        points: {}  // yeni alan
     });
 
     await newUser.save();
@@ -53,7 +63,7 @@ app.post("/register", async (req, res) => {
     res.status(201).json({ message: "Kayıt başarılı", token, name });
 });
 
-// Giriş Route
+// ✅ Giriş Route
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -75,12 +85,12 @@ app.post("/login", async (req, res) => {
         name: user.name,
         skillsHave: user.skillsHave,
         skillsWant: user.skillsWant,
-        userId: user._id,          // Gerekirse frontend'e gönder
-        points: user.points || {}  // Puanları da gönder
+        userId: user._id,
+        points: user.points || {}
     });
 });
 
-// Sunucuyu başlat
+// ✅ Sunucuyu başlat
 app.listen(5000, () => {
     console.log("✅ Sunucu http://localhost:5000 adresinde çalışıyor");
 });
