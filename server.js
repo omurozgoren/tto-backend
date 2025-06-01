@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 
 const User = require("./models/User");
 const Rating = require("./models/Rating");
-const ratingRoutes = require("./routes/rating");
 
 const app = express();
 app.use(cors());
@@ -19,19 +18,6 @@ mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?
 })
     .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
     .catch(err => console.error("❌ MongoDB bağlantı hatası:", err));
-
-// ✅ Rating route'u bağla
-app.use("/rate", ratingRoutes);
-
-// ✅ Tüm kullanıcıları getir (skill sayfalarında kullanılacak)
-app.get("/users", async (req, res) => {
-    try {
-        const users = await User.find();
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: "Kullanıcılar alınamadı" });
-    }
-});
 
 // ✅ Kayıt Route
 app.post("/register", async (req, res) => {
@@ -54,7 +40,7 @@ app.post("/register", async (req, res) => {
         password: hashed,
         skillsHave,
         skillsWant,
-        points: {}  // yeni alan
+        points: {}  // yeni alan: puanlar
     });
 
     await newUser.save();
@@ -88,6 +74,52 @@ app.post("/login", async (req, res) => {
         userId: user._id,
         points: user.points || {}
     });
+});
+
+// ✅ Belirli bir skill'e göre kullanıcıları sırala (puana göre)
+app.get("/users", async (req, res) => {
+    const skill = req.query.skill;
+    if (!skill) return res.status(400).json({ message: "Skill gerekli." });
+
+    const users = await User.find({ skillsHave: skill });
+
+    const sorted = users.sort((a, b) => {
+        const ap = a.points?.[skill] || 0;
+        const bp = b.points?.[skill] || 0;
+        return bp - ap;
+    });
+
+    res.json(sorted);
+});
+
+// ✅ Oy Verme (puanlama)
+app.post("/rate", async (req, res) => {
+    const { fromUserId, toUserId, skill, score } = req.body;
+
+    if (!fromUserId || !toUserId || !skill || !score) {
+        return res.status(400).json({ message: "Eksik veri." });
+    }
+
+    if (fromUserId === toUserId) {
+        return res.status(400).json({ message: "Kendini oylayamazsın." });
+    }
+
+    const alreadyRated = await Rating.findOne({ fromUserId, toUserId, skill });
+    if (alreadyRated) {
+        return res.status(400).json({ message: "Bu kullanıcıyı zaten oyladınız." });
+    }
+
+    await Rating.create({ fromUserId, toUserId, skill, score });
+
+    const user = await User.findById(toUserId);
+    const current = user.points?.[skill] || 0;
+    const updated = current + score;
+
+    await User.findByIdAndUpdate(toUserId, {
+        $set: { [`points.${skill}`]: updated }
+    });
+
+    res.json({ message: "Puan verildi." });
 });
 
 // ✅ Sunucuyu başlat
