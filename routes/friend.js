@@ -4,7 +4,7 @@ const router = express.Router();
 const Friend = require("../models/Friend");
 const User = require("../models/User");
 
-// Arkadaş ekle
+// ArkadaÅŸ ekle
 router.post("/add", async (req, res) => {
     const { userEmail, friendEmail } = req.body;
 
@@ -14,18 +14,18 @@ router.post("/add", async (req, res) => {
 
     const friendUser = await User.findOne({ email: friendEmail });
     if (!friendUser) {
-        return res.status(404).json({ message: "Bu email ile kullanıcı bulunamadı." });
+        return res.status(404).json({ message: "Bu email ile kullanÄ±cÄ± bulunamadÄ±." });
     }
 
     const existing = await Friend.findOne({ userEmail, friendEmail });
     if (existing) {
-        return res.status(400).json({ message: "Zaten arkadaşsınız." });
+        return res.status(400).json({ message: "Zaten arkadaÅŸsÄ±nÄ±z." });
     }
 
     const newFriend = new Friend({ userEmail, friendEmail });
     await newFriend.save();
 
-    res.status(201).json({ message: "Arkadaş eklendi!" });
+    res.status(201).json({ message: "ArkadaÅŸ eklendi!" });
 });
 
 module.exports = router;
