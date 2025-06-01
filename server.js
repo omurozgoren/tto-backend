@@ -3,13 +3,16 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+
 const User = require("./models/User");
+const Rating = require("./models/Rating");
+const ratingRoutes = require("./routes/rating");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ MongoDB bağlantısı
+// MongoDB Bağlantısı
 mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?retryWrites=true&w=majority&appName=TTO", {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -17,8 +20,10 @@ mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?
     .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
     .catch(err => console.error("❌ MongoDB bağlantı hatası:", err));
 
+// Rating route bağlama
+app.use("/rate", ratingRoutes);
 
-// ✅ Kayıt Route
+// Kayıt Route
 app.post("/register", async (req, res) => {
     const { name, email, password, skillsHave, skillsWant } = req.body;
 
@@ -38,7 +43,8 @@ app.post("/register", async (req, res) => {
         email,
         password: hashed,
         skillsHave,
-        skillsWant
+        skillsWant,
+        points: {}  // Yeni kullanıcı için boş puan listesi
     });
 
     await newUser.save();
@@ -47,7 +53,7 @@ app.post("/register", async (req, res) => {
     res.status(201).json({ message: "Kayıt başarılı", token, name });
 });
 
-// ✅ Giriş Route
+// Giriş Route
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -68,11 +74,13 @@ app.post("/login", async (req, res) => {
         token,
         name: user.name,
         skillsHave: user.skillsHave,
-        skillsWant: user.skillsWant
+        skillsWant: user.skillsWant,
+        userId: user._id,          // Gerekirse frontend'e gönder
+        points: user.points || {}  // Puanları da gönder
     });
 });
 
-// ✅ Sunucuyu başlat
+// Sunucuyu başlat
 app.listen(5000, () => {
     console.log("✅ Sunucu http://localhost:5000 adresinde çalışıyor");
 });
