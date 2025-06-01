@@ -2,39 +2,66 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+const User = require("./models/User");
 
 const app = express();
-app.use(cors()); // 🔥 Frontend'ten gelen istekleri kabul et
-app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 
-const users = []; // Geçici kullanıcı verisi
+// ✅ MongoDB bağlantısı
+mongoose.connect("mongodb + srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/?retryWrites=true&w=majority&appName=TTO", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+    .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
+    .catch(err => console.error("❌ MongoDB bağlantı hatası:", err));
+
+// ✅ User modeli
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: { type: String, unique: true },
+    password: String,
+    skillsHave: [String],
+    skillsWant: [String]
+});
+
+const User = mongoose.model("User", userSchema);
 
 // ✅ Kayıt Route
 app.post("/register", async (req, res) => {
-    const { email, password } = req.body;
+    const { name, email, password, skillsHave, skillsWant } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: "Email ve şifre gereklidir." });
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: "İsim, e-posta ve şifre gereklidir." });
     }
 
-    const userExists = users.find(u => u.email === email);
-    if (userExists) {
-        return res.status(400).json({ message: "Bu e-posta zaten var." });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(400).json({ message: "Bu e-posta zaten kayıtlı." });
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    users.push({ email, password: hashed });
 
-    console.log("Yeni kullanıcı:", email);
-    res.status(201).json({ message: "Kayıt başarılı", token: "example-token" });
+    const newUser = new User({
+        name,
+        email,
+        password: hashed,
+        skillsHave,
+        skillsWant
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign({ email }, "gizli_anahtar", { expiresIn: "1h" });
+    res.status(201).json({ message: "Kayıt başarılı", token, name });
 });
 
 // ✅ Giriş Route
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
-    const user = users.find(u => u.email === email);
+    const user = await User.findOne({ email });
     if (!user) {
         return res.status(400).json({ message: "Kullanıcı bulunamadı" });
     }
@@ -45,10 +72,17 @@ app.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign({ email }, "gizli_anahtar", { expiresIn: "1h" });
-    res.json({ message: "Giriş başarılı", token });
+
+    res.json({
+        message: "Giriş başarılı",
+        token,
+        name: user.name,
+        skillsHave: user.skillsHave,
+        skillsWant: user.skillsWant
+    });
 });
 
-// ✅ Sunucuyu Başlat
+// ✅ Sunucuyu başlat
 app.listen(5000, () => {
     console.log("✅ Sunucu http://localhost:5000 adresinde çalışıyor");
 });
