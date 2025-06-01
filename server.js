@@ -10,23 +10,13 @@ app.use(cors());
 app.use(express.json());
 
 // ✅ MongoDB bağlantısı
-mongoose.connect("mongodb + srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/?retryWrites=true&w=majority&appName=TTO", {
+mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?retryWrites=true&w=majority&appName=TTO", {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
     .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
     .catch(err => console.error("❌ MongoDB bağlantı hatası:", err));
 
-// ✅ User modeli
-const userSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true },
-    password: String,
-    skillsHave: [String],
-    skillsWant: [String]
-});
-
-const User = mongoose.model("User", userSchema);
 
 // ✅ Kayıt Route
 app.post("/register", async (req, res) => {
