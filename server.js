@@ -3,13 +3,14 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
-
+const friendRoutes = require("./routes/friend");
 const User = require("./models/User");
 const Rating = require("./models/Rating");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/friend", friendRoutes);
 
 // ✅ MongoDB bağlantısı
 mongoose.connect("mongodb+srv://admin:tugbapipi@tto.5cugmxz.mongodb.net/tto-app?retryWrites=true&w=majority&appName=TTO", {
